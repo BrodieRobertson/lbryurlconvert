@@ -1,0 +1,76 @@
+#!/bin/sh
+
+Err() {
+  echo "$2" 1>&2
+  exit "$1"
+}
+
+HelpPage() {
+  echo "LBRY URL Convert Help Page
+    -p <url> convert a lbry url to the protocol format
+    -o <url> convert a lbry url to the open.lbry format
+    -t <url> convert a lbry url to the lbry.tv format
+    -h show this help page"
+}
+
+for Value in "$@"
+do
+  # Handle options
+  case "$Value" in
+    # Options requring arguments
+    -p|-o|-t) OptionSet=$Value ;;
+    -h|--help) HelpPage; exit 0;;
+  esac
+
+  # Handle arguments
+  if [ -n "$OptionSet" ]; then
+    case "$OptionSet" in
+      -o) Open=$Value ;;
+      -p) Protocol=$Value ;;
+      -t) Tv=$Value ;;
+      *) Err 1 "Invalid option set" ;;
+  esac
+  fi
+done
+
+CheckFormat() {
+  if [ -n "$(echo "$1" | grep "lbry.tv")" ]; then
+    echo "tv"
+  elif [ -n "$(echo "$1" | grep "open.lbry")" ]; then
+    echo "open"
+  elif [ -n "$(echo "$1" | grep "lbry:")" ]; then
+    echo "protocol"
+  fi
+}
+
+# Convert to open.lbry format
+if [ -n "$Open" ]; then
+  type=$(CheckFormat $Open)
+  if [ "$type" = "tv" ]; then
+    echo "$Open" | sed "s|.*tv/|https://open.lbry.com/|"
+  elif [ "$type" = "protocol" ]; then
+    echo "$Open" | sed "s/#/:/g;s|lbry://|https://open.lbry.com/|"
+  else
+    echo "$Open"
+  fi
+# Convert to protocol format
+elif [ -n "$Protocol" ]; then
+  type=$(CheckFormat $Protocol)
+  if [ "$type" = "tv" ]; then
+    echo "$Protocol" | sed "s/:/#/g;s|.*tv/|lbry://|"
+  elif [ "$type" = "open" ]; then
+    echo "$Protocol" | sed "s/:/#/g;s|.*lbry.com/|lbry://|"
+  else
+    echo $Protocol
+  fi
+# Convert to lbry.tv format
+elif [ -n "$Tv" ]; then
+  type=$(CheckFormat $Tv)
+  if [ "$type" = "protocol" ]; then
+    echo "$Tv" | sed "s/#/:/g;s|lbry://|https://lbry.tv/|"
+  elif [ "$type" = "open" ]; then
+    echo "$Tv" | sed "s|.*lbry.com/|https://lbry.tv/|"
+  else
+    echo $Tv
+  fi
+fi
