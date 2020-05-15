@@ -10,6 +10,7 @@ HelpPage() {
     -p <url> convert a lbry url to the protocol format
     -o <url> convert a lbry url to the open.lbry format
     -t <url> convert a lbry url to the lbry.tv format
+		-c copies the result to the clipboard
     -h show this help page"
 }
 
@@ -18,7 +19,7 @@ do
   # Handle options
   case "$Value" in
     # Options requring arguments
-    -p|-o|-t) OptionSet=$Value ;;
+    -p|-o|-t|-c) OptionSet=$Value ;;
     -h|--help) HelpPage; exit 0;;
   esac
 
@@ -28,6 +29,7 @@ do
       -o) Open=$Value ;;
       -p) Protocol=$Value ;;
       -t) Tv=$Value ;;
+			-c) Clipboard=true ;;
       *) Err 1 "Invalid option set" ;;
   esac
   fi
@@ -47,30 +49,36 @@ CheckFormat() {
 if [ -n "$Open" ]; then
   type=$(CheckFormat $Open)
   if [ "$type" = "tv" ]; then
-    echo "$Open" | sed "s|.*tv/|https://open.lbry.com/|"
+		Output=$(echo "$Open" | sed "s|.*tv/|https://open.lbry.com/|")
   elif [ "$type" = "protocol" ]; then
-    echo "$Open" | sed "s/#/:/g;s|lbry://|https://open.lbry.com/|"
+		Output=$(echo "$Open" | sed "s/#/:/g;s|lbry://|https://open.lbry.com/|")
   else
-    echo "$Open"
+		Output="$Open"
   fi
 # Convert to protocol format
 elif [ -n "$Protocol" ]; then
   type=$(CheckFormat $Protocol)
   if [ "$type" = "tv" ]; then
-    echo "$Protocol" | sed "s/:/#/g;s|.*tv/|lbry://|"
+		Output=$(echo "$Protocol" | sed "s/:/#/g;s|.*tv/|lbry://|")
   elif [ "$type" = "open" ]; then
-    echo "$Protocol" | sed "s/:/#/g;s|.*lbry.com/|lbry://|"
+		Output=$(echo "$Protocol" | sed "s/:/#/g;s|.*lbry.com/|lbry://|")
   else
-    echo $Protocol
+		Output="$Protocol"
   fi
 # Convert to lbry.tv format
 elif [ -n "$Tv" ]; then
   type=$(CheckFormat $Tv)
   if [ "$type" = "protocol" ]; then
-    echo "$Tv" | sed "s/#/:/g;s|lbry://|https://lbry.tv/|"
+		Output=$(echo "$Tv" | sed "s/#/:/g;s|lbry://|https://lbry.tv/|")
   elif [ "$type" = "open" ]; then
-    echo "$Tv" | sed "s|.*lbry.com/|https://lbry.tv/|"
+		Output=$(echo "$Tv" | sed "s|.*lbry.com/|https://lbry.tv/|")
   else
-    echo $Tv
+		Output="$Tv"
   fi
+fi
+
+if [ $Clipboard = "true" ]; then
+	echo "$Output" | xclip -selection clipboard
+else
+	echo "$Output"
 fi
